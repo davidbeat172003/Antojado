@@ -3,7 +3,8 @@ import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { Heart, MapPin, Star, User, Menu, X, Utensils, Coffee, Pizza, IceCream, LogOut, Store } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import { useFavorites } from './hooks/useFavorites';
-import { collection, getDocs, query, where, doc, setDoc, onSnapshot } from 'firebase/firestore';import { db } from './firebase/config';
+import { collection, getDocs, query, where, doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
+import { db } from './firebase/config';
 import RestaurantDetail from './pages/RestaurantDetail';
 import BusinessDashboard from './pages/BusinessDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -21,7 +22,6 @@ function NavBar() {
     const loadUserType = async () => {
       if (currentUser) {
         try {
-          const { getDoc } = await import('firebase/firestore');
           const userDoc = doc(db, 'users', currentUser.uid);
           const docSnap = await getDoc(userDoc);
           if (docSnap.exists()) {
