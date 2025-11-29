@@ -1,0 +1,29 @@
+<svg viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Pin background (red) -->
+  <path d="M200 50C130 50 75 105 75 180C75 280 200 450 200 450C200 450 325 280 325 180C325 105 270 50 200 50Z" fill="#C41E3A"/>
+  
+  <!-- Pin circle (yellow) -->
+  <circle cx="200" cy="170" r="95" fill="#FFC107"/>
+  
+  <!-- Left eye -->
+  <path d="M165 145C160 135 155 135 150 145" stroke="#8B4513" stroke-width="8" fill="none" stroke-linecap="round"/>
+  
+  <!-- Right eye -->
+  <path d="M250 145C245 135 240 135 235 145" stroke="#8B4513" stroke-width="8" fill="none" stroke-linecap="round"/>
+  
+  <!-- Mouth -->
+  <path d="M160 180Q200 210 240 180" stroke="#8B4513" stroke-width="8" fill="none" stroke-linecap="round"/>
+  
+  <!-- Mouth fill (red) -->
+  <ellipse cx="200" cy="195" rx="35" ry="20" fill="#E63946"/>
+  
+  <!-- Fork hand -->
+  <g transform="translate(250, 160)">
+    <!-- Fork handle -->
+    <line x1="0" y1="0" x2="20" y2="40" stroke="#C41E3A" stroke-width="6" stroke-linecap="round"/>
+    <!-- Fork prongs -->
+    <line x1="10" y1="40" x2="5" y2="60" stroke="#C41E3A" stroke-width="6" stroke-linecap="round"/>
+    <line x1="20" y1="40" x2="25" y2="60" stroke="#C41E3A" stroke-width="6" stroke-linecap="round"/>
+    <line x1="30" y1="40" x2="35" y2="60" stroke="#C41E3A" stroke-width="6" stroke-linecap="round"/>
+  </g>
+</svg>
