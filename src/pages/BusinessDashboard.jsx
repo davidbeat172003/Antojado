@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Store, Upload, Edit, Trash2, Plus, Save, X, 
+  Store, Upload, Edit, Trash2, Plus, Save, X, AlertCircle,
   Image as ImageIcon, Clock, MapPin, Phone, Star,
   Users, Eye, Heart, TrendingUp
 } from 'lucide-react';
@@ -31,6 +31,7 @@ export default function BusinessDashboard() {
   const [newMenuItem, setNewMenuItem] = useState({ name: '', price: '', description: '' });
   const [images, setImages] = useState([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState('free');
   const [hours, setHours] = useState({
     lunes: { open: '10:00', close: '22:00', closed: false },
     martes: { open: '10:00', close: '22:00', closed: false },
@@ -40,6 +41,30 @@ export default function BusinessDashboard() {
     sabado: { open: '09:00', close: '23:00', closed: false },
     domingo: { open: '09:00', close: '23:00', closed: false }
   });
+
+  // Límites por plan
+const planLimits = {
+  free: {
+    name: 'Gratuito',
+    maxImages: 3,
+    maxMenuItems: 5,
+    color: 'gray'
+  },
+  premium: {
+    name: 'Premium',
+    maxImages: 999,
+    maxMenuItems: 999,
+    color: 'orange'
+  },
+  destacado: {
+    name: 'Destacado',
+    maxImages: 999,
+    maxMenuItems: 999,
+    color: 'purple'
+  }
+};
+
+const limits = planLimits[currentPlan];
 
   useEffect(() => {
     loadBusinessData();
@@ -53,6 +78,12 @@ export default function BusinessDashboard() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setBusinessData(data);
+        // Cargar plan del usuario
+        const userDoc = doc(db, 'users', currentUser.uid);
+        const userSnap = await getDoc(userDoc);
+        if (userSnap.exists()) {
+          setCurrentPlan(userSnap.data().subscriptionPlan || 'free');
+        }
         setImages(data.images || []);
         setEditData({
           name: data.name || '',
@@ -93,23 +124,29 @@ export default function BusinessDashboard() {
   };
 
   const handleAddMenuItem = async () => {
-    if (!newMenuItem.name || !newMenuItem.price) {
-      alert('Por favor completa el nombre y precio del platillo');
-      return;
-    }
+  if (!newMenuItem.name || !newMenuItem.price) {
+    alert('Por favor completa el nombre y precio del platillo');
+    return;
+  }
 
-    try {
-      const updatedMenu = [...menuItems, { ...newMenuItem, id: Date.now() }];
-      const localDoc = doc(db, 'locales', currentUser.uid);
-      await updateDoc(localDoc, { menu: updatedMenu });
-      setMenuItems(updatedMenu);
-      setNewMenuItem({ name: '', price: '', description: '' });
-      alert('Platillo agregado');
-    } catch (error) {
-      console.error('Error al agregar platillo:', error);
-      alert('Error al agregar platillo');
-    }
-  };
+  // Verificar límite de plan
+  if (menuItems.length >= limits.maxMenuItems) {
+    alert(`Has alcanzado el límite de ${limits.maxMenuItems} platillos del plan ${limits.name}. Actualiza tu plan para agregar más platillos.`);
+    return;
+  }
+
+  try {
+    const updatedMenu = [...menuItems, { ...newMenuItem, id: Date.now() }];
+    const localDoc = doc(db, 'locales', currentUser.uid);
+    await updateDoc(localDoc, { menu: updatedMenu });
+    setMenuItems(updatedMenu);
+    setNewMenuItem({ name: '', price: '', description: '' });
+    alert('Platillo agregado');
+  } catch (error) {
+    console.error('Error al agregar platillo:', error);
+    alert('Error al agregar platillo');
+  }
+};
 
   const handleDeleteMenuItem = async (itemId) => {
     if (!confirm('¿Eliminar este platillo?')) return;
@@ -140,6 +177,18 @@ export default function BusinessDashboard() {
   const handleImageUpload = async (e) => {
   const files = e.target.files;
   if (!files || files.length === 0) return;
+
+  // Verificar límite de plan
+  if (images.length >= limits.maxImages) {
+    alert(`Has alcanzado el límite de ${limits.maxImages} imágenes del plan ${limits.name}. Actualiza tu plan para subir más imágenes.`);
+    return;
+  }
+
+  const remainingSlots = limits.maxImages - images.length;
+  if (files.length > remainingSlots) {
+    alert(`Solo puedes subir ${remainingSlots} imagen(es) más en el plan ${limits.name}.`);
+    return;
+  }
 
   setUploadingImage(true);
   try {
@@ -226,6 +275,38 @@ const handleDeleteImage = async (imageUrl) => {
                 Ver como Cliente
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Banner del Plan */}
+      <div className="bg-gray-900 border-b border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`px-3 py-1 rounded-full text-sm font-bold ${
+                currentPlan === 'destacado' ? 'bg-purple-500/20 text-purple-400' :
+                currentPlan === 'premium' ? 'bg-orange-500/20 text-orange-400' :
+                'bg-gray-500/20 text-gray-400'
+              }`}>
+                Plan {limits.name}
+              </div>
+              <span className="text-gray-400 text-sm">
+                {currentPlan === 'free' ? (
+                  `${images.length}/${limits.maxImages} imágenes · ${menuItems.length}/${limits.maxMenuItems} platillos`
+                ) : (
+                  '✓ Sin límites'
+                )}
+              </span>
+            </div>
+            {currentPlan === 'free' && (
+              <button
+                onClick={() => navigate('/planes')}
+                className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition text-sm font-medium"
+              >
+                Actualizar Plan
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -438,11 +519,45 @@ const handleDeleteImage = async (imageUrl) => {
             {/* Tab: Menú */}
             {activeTab === 'menu' && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-white mb-6">Gestionar Menú</h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-white">Gestionar Menú</h2>
+                  <div className="text-gray-400">
+                    {menuItems.length} / {limits.maxMenuItems === 999 ? '∞' : limits.maxMenuItems}
+                  </div>
+                </div>
 
                 {/* Agregar nuevo platillo */}
                 <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
                   <h3 className="text-lg font-bold text-white mb-4">Agregar Platillo</h3>
+
+                  {/* Alerta de límite */}
+                    {currentPlan === 'free' && menuItems.length >= limits.maxMenuItems - 1 && (
+                      <div className="bg-orange-500/10 border border-orange-500 rounded-lg p-4 flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-orange-400 font-medium">
+                            {menuItems.length === limits.maxMenuItems 
+                              ? '¡Límite alcanzado!' 
+                              : '¡Casi alcanzas el límite!'}
+                          </p>
+                          <p className="text-gray-400 text-sm mt-1">
+                            {menuItems.length === limits.maxMenuItems
+                              ? `Has llegado al límite de ${limits.maxMenuItems} platillos del plan gratuito.`
+                              : `Solo puedes agregar ${limits.maxMenuItems - menuItems.length} platillo(s) más.`
+                            }
+                            {' '}
+                            <button
+                              onClick={() => navigate('/planes')}
+                              className="text-orange-400 underline hover:text-orange-300"
+                            >
+                              Actualizar plan
+                            </button>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+
                   <div className="grid md:grid-cols-3 gap-4">
                     <input
                       type="text"
@@ -588,8 +703,13 @@ const handleDeleteImage = async (imageUrl) => {
             {/* Tab: Imágenes */}
 {activeTab === 'images' && (
   <div className="space-y-6">
-    <h2 className="text-2xl font-bold text-white mb-6">Galería de Imágenes</h2>
-    
+    <div className="flex items-center justify-between mb-6">
+      <h2 className="text-2xl font-bold text-white">Galería de Imágenes</h2>
+      <div className="text-gray-400">
+        {images.length} / {limits.maxImages === 999 ? '∞' : limits.maxImages}
+      </div>
+    </div>
+
     <div className="border-2 border-dashed border-gray-700 rounded-lg p-12 text-center">
       <input
         type="file"

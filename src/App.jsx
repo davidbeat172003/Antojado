@@ -9,6 +9,9 @@ import RestaurantDetail from './pages/RestaurantDetail';
 import BusinessDashboard from './pages/BusinessDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import AddTestData from './utils/AddTestData';
+import PricingPage from './pages/PricingPage';
+import CheckoutPage from './pages/CheckoutPage';
+import SuccessPage from './pages/SuccessPage';
 
 // Componente NavBar
 function NavBar() {
@@ -67,6 +70,9 @@ function NavBar() {
                   {favorites.length}
                 </span>
               )}
+            </Link>
+            <Link to="/planes" className="text-gray-300 hover:text-orange-500 font-medium transition">
+              Planes
             </Link>
 
             {currentUser && userType === 'negocio' && (
@@ -172,6 +178,7 @@ function HomePage({ locales, loading }) {
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [minRating, setMinRating] = useState(0);
   
+  const destacadosRef = useRef(null);
   const mejorCalificadosRef = useRef(null);
   const restaurantesRef = useRef(null);
   const cafeteriasRef = useRef(null);
@@ -196,6 +203,8 @@ function HomePage({ locales, loading }) {
   });
 
   const categories = ['Todos', ...new Set(locales.map(l => l.category))];
+  // Filtrar locales destacados (plan destacado)
+const featuredLocales = filteredLocales.filter(l => l.subscriptionPlan === 'destacado' || l.featured === true);
 
   const HorizontalCarousel = ({ title, items, scrollRef }) => {
     if (items.length === 0) return null;
@@ -252,8 +261,14 @@ function HomePage({ locales, loading }) {
                   </div>
                   
                   <div className="mt-2">
-                    <h3 className="font-bold text-white text-lg group-hover/card:text-orange-500 transition line-clamp-1">
+                    <h3 className="font-bold text-white text-lg group-hover/card:text-orange-500 transition line-clamp-1 flex items-center gap-2">
                       {item.name}
+                      {(item.subscriptionPlan === 'destacado' || item.featured) && (
+                        <div className="bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
+                          <Star className="h-2.5 w-2.5 fill-purple-400" />
+                          PRO
+                        </div>
+                      )}
                     </h3>
                     <p className="text-sm text-gray-400 line-clamp-1">{item.category}</p>
                   </div>
@@ -451,6 +466,96 @@ function HomePage({ locales, loading }) {
 
           {/* Contenido Principal - LADO DERECHO */}
           <div className="flex-1 overflow-hidden">
+            {/* Sección de Destacados - PREMIUM */}
+            {featuredLocales.length > 0 && (
+              <div className="mb-12 bg-gradient-to-r from-purple-900/20 to-pink-900/20 rounded-2xl p-6 border border-purple-500/30">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-purple-500 p-2 rounded-lg">
+                    <Star className="h-6 w-6 text-white fill-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Negocios Destacados</h2>
+                    <p className="text-purple-300 text-sm">Los mejores locales de Antojado</p>
+                  </div>
+                </div>
+                
+                <div className="relative group">
+                  <button
+                    onClick={() => scroll(destacadosRef, 'left')}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-r-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+
+                  <div
+                    ref={destacadosRef}
+                    className="flex gap-4 overflow-x-auto scrollbar-hide pb-4"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                  >
+                    {featuredLocales.map((item) => (
+                      <div key={item.id} className="flex-shrink-0 w-80 group/card">
+                        <Link to={`/local/${item.id}`} className="block">
+                          <div className="relative overflow-hidden rounded-xl transform transition-transform duration-300 group-hover/card:scale-105 border-2 border-purple-500/50">
+                            {/* Badge de Destacado */}
+                            <div className="absolute top-3 left-3 bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 z-10">
+                              <Star className="h-3 w-3 fill-white" />
+                              DESTACADO
+                            </div>
+                            
+                            <img
+                              src={item.images && item.images[0] ? item.images[0] : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400'}
+                              alt={item.name}
+                              className="w-full h-48 object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
+                            
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                toggleFavorite(item.id);
+                              }}
+                              className="absolute top-3 right-3 bg-black/60 p-2 rounded-full shadow-md hover:bg-black/80 transition opacity-0 group-hover/card:opacity-100 z-10"
+                            >
+                              <Heart className={`h-5 w-5 ${favorites.includes(item.id) ? 'fill-orange-500 text-orange-500' : 'text-white'}`} />
+                            </button>
+
+                            <div className="absolute bottom-0 left-0 right-0 p-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                                <span className="text-white font-medium text-sm">{item.rating || '0.0'}</span>
+                                <span className="text-purple-300 text-xs ml-2">• {item.category}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-3">
+                            <h3 className="font-bold text-white text-xl group-hover/card:text-purple-400 transition line-clamp-1 flex items-center gap-2">
+                              {item.name}
+                              <div className="bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded text-xs font-bold">
+                                ✓ VERIFICADO
+                              </div>
+                            </h3>
+                            <p className="text-sm text-gray-400 line-clamp-2 mt-1">{item.description}</p>
+                          </div>
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => scroll(destacadosRef, 'right')}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-l-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+            
             <HorizontalCarousel 
               title="Mejor Calificados ⭐" 
               items={filteredLocales.sort((a, b) => (b.rating || 0) - (a.rating || 0))} 
@@ -1047,6 +1152,9 @@ return (
         <Route path="/registro" element={<RegisterPage />} />
         <Route path="/local/:id" element={<RestaurantDetail locales={locales} />} />
         <Route path="/agregar-datos" element={<AddTestData />} />
+        <Route path="/planes" element={<PricingPage />} />
+        <Route path="/checkout/:planId" element={<CheckoutPage />} />
+        <Route path="/checkout/success"  element={<SuccessPage />} />    
 
         <Route 
           path="/dashboard-negocio" 

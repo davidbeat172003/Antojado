@@ -15,6 +15,10 @@ export default function RestaurantDetail({ locales }) {
   // Encontrar el local por ID
   const local = locales.find(l => l.id === id);
 
+  // Verificar si es negocio destacado o premium
+const isVerified = local?.subscriptionPlan === 'destacado' || local?.featured === true;
+const isPremium = local?.subscriptionPlan === 'premium' || local?.subscriptionPlan === 'destacado';
+
   // Si no existe el local, mostrar error
   if (!local) {
     return (
@@ -90,6 +94,23 @@ export default function RestaurantDetail({ locales }) {
         </div>
       </div>
 
+      {/* Banner Destacado - Solo para plan Destacado */}
+      {isVerified && (
+        <div className="mt-16 bg-gradient-to-r from-purple-900/30 to-pink-900/30 border-y border-purple-500/30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-purple-500 p-2 rounded-lg">
+                <Star className="h-5 w-5 text-white fill-white" />
+              </div>
+              <div>
+                <p className="text-white font-bold">Negocio Destacado</p>
+                <p className="text-purple-300 text-sm">Este establecimiento es miembro destacado de Antojado</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Galería de Imágenes */}
       <div className="relative mt-16">
         <div className="relative h-96 overflow-hidden">
@@ -98,6 +119,13 @@ export default function RestaurantDetail({ locales }) {
             alt={local.name}
             className="w-full h-full object-cover"
           />
+          {/* Badge en imagen principal */}
+          {isVerified && (
+            <div className="absolute top-6 right-6 bg-purple-500 text-white px-4 py-2 rounded-full font-bold flex items-center gap-2 shadow-lg z-10">
+              <Star className="h-5 w-5 fill-white" />
+              DESTACADO
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         </div>
 
@@ -130,7 +158,21 @@ export default function RestaurantDetail({ locales }) {
             <div>
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h1 className="text-4xl font-bold text-white mb-2">{local.name}</h1>
+                  <div className="flex items-center gap-3 mb-2">
+                    <h1 className="text-4xl font-bold text-white">{local.name}</h1>
+                    {isVerified && (
+                      <div className="flex items-center gap-1 bg-purple-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                        <Star className="h-4 w-4 fill-white" />
+                        VERIFICADO
+                      </div>
+                    )}
+                    {isPremium && !isVerified && (
+                      <div className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                        <Star className="h-4 w-4 fill-white" />
+                        PREMIUM
+                      </div>
+                    )}
+                  </div>
                   <p className="text-orange-500 text-lg font-medium">{local.category}</p>
                 </div>
                 <div className="flex items-center bg-gray-900 px-4 py-2 rounded-full">
@@ -143,9 +185,9 @@ export default function RestaurantDetail({ locales }) {
             </div>
 
             {/* Información de Contacto */}
-            <div className="bg-gray-900 rounded-xl p-6 space-y-4">
-              <h2 className="text-2xl font-bold text-white mb-4">Información de Contacto</h2>
-              
+            <div className={`bg-gray-900 rounded-xl p-6 space-y-4 ${isVerified ? 'border-2 border-purple-500/30' : ''}`}>
+  <           h2 className="text-2xl font-bold text-white mb-4">Información de Contacto</h2>
+
               <div className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-orange-500 mt-1 flex-shrink-0" />
                 <div>
@@ -277,6 +319,33 @@ export default function RestaurantDetail({ locales }) {
               </div>
             </div>
           </div>
+
+          {/* Beneficios del Negocio Destacado */}
+          {isVerified && (
+            <div className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 rounded-xl p-6 border border-purple-500/30">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-purple-500 p-2 rounded-lg">
+                  <Star className="h-6 w-6 text-white fill-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-white">Por qué somos Destacados</h2>
+              </div>
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="bg-gray-900/50 rounded-lg p-4">
+                  <div className="text-purple-400 font-bold mb-2">✓ Verificado</div>
+                  <p className="text-gray-300 text-sm">Negocio verificado por Antojado</p>
+                </div>
+                <div className="bg-gray-900/50 rounded-lg p-4">
+                  <div className="text-purple-400 font-bold mb-2">✓ Calidad Premium</div>
+                  <p className="text-gray-300 text-sm">Compromiso con la excelencia</p>
+                </div>
+                <div className="bg-gray-900/50 rounded-lg p-4">
+                  <div className="text-purple-400 font-bold mb-2">✓ Atención Garantizada</div>
+                  <p className="text-gray-300 text-sm">Respuesta rápida a consultas</p>
+                </div>
+              </div>
+            </div>
+          )}
+
 
           {/* Columna Lateral - Mapa */}
           <div className="lg:col-span-1">
