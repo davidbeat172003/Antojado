@@ -1,16 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   Heart, Star, MapPin, Clock, Phone, Globe, 
   ChevronLeft, Share2, Navigation, MessageCircle, Facebook, Instagram, MessageSquare
 } from 'lucide-react';
 import { useFavorites } from '../hooks/useFavorites';
+import { useReviews } from '../hooks/useReviews';
+import ReviewForm from '../components/ReviewForm';
+import ReviewsList from '../components/ReviewsList';
+import { useAuth } from '../context/AuthContext';
 
 export default function RestaurantDetail({ locales }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const { favorites, toggleFavorite } = useFavorites();
   const [selectedImage, setSelectedImage] = useState(0);
+  const { reviews, loading: reviewsLoading, loadReviews } = useReviews();
+  const { currentUser } = useAuth();
 
   // Encontrar el local por ID
   const local = locales.find(l => l.id === id);
@@ -18,6 +24,46 @@ export default function RestaurantDetail({ locales }) {
   // Verificar si es negocio destacado o premium
 const isVerified = local?.subscriptionPlan === 'destacado' || local?.featured === true;
 const isPremium = local?.subscriptionPlan === 'premium' || local?.subscriptionPlan === 'destacado';
+
+// Función para compartir
+const handleShare = async () => {
+  const shareData = {
+    title: local.name,
+    text: `¡Mira este lugar! ${local.name} - ${local.description}`,
+    url: window.location.href
+  };
+
+  try {
+    // Verificar si el navegador soporta Web Share API
+    if (navigator.share) {
+      await navigator.share(shareData);
+      console.log('Compartido exitosamente');
+    } else {
+      // Si no soporta, copiar al portapapeles
+      await navigator.clipboard.writeText(window.location.href);
+      alert('✅ Enlace copiado al portapapeles');
+    }
+  } catch (error) {
+    // Si el usuario cancela o hay error
+    if (error.name !== 'AbortError') {
+      console.error('Error al compartir:', error);
+      // Fallback: copiar al portapapeles
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        alert('✅ Enlace copiado al portapapeles');
+      } catch (clipboardError) {
+        alert('❌ No se pudo compartir. Copia el enlace manualmente.');
+      }
+    }
+  }
+};
+
+// Cargar reseñas
+useEffect(() => {
+  if (local?.id) {
+    loadReviews(local.id);
+  }
+}, [local?.id]);
 
   // Si no existe el local, mostrar error
   if (!local) {
@@ -81,7 +127,10 @@ const isPremium = local?.subscriptionPlan === 'premium' || local?.subscriptionPl
             <span className="font-medium">Volver</span>
           </button>
           <div className="flex gap-3">
-            <button className="p-2 bg-gray-900 hover:bg-gray-800 rounded-full transition">
+            <button 
+              onClick={handleShare}
+              className="p-2 bg-gray-900 hover:bg-gray-800 rounded-full transition"
+            >
               <Share2 className="h-5 w-5 text-gray-300" />
             </button>
             <button
@@ -293,30 +342,60 @@ const isPremium = local?.subscriptionPlan === 'premium' || local?.subscriptionPl
             {/* Reseñas */}
             <div className="bg-gray-900 rounded-xl p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">Reseñas</h2>
-                <button className="bg-orange-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-600 transition flex items-center gap-2">
-                  <MessageCircle className="h-4 w-4" />
-                  Escribir reseña
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {reseñas.map((reseña, idx) => (
-                  <div key={idx} className="pb-6 border-b border-gray-800 last:border-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h4 className="text-white font-medium">{reseña.nombre}</h4>
-                        <p className="text-gray-500 text-sm">{reseña.fecha}</p>
-                      </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Reseñas</h2>
+                  {local.reviewCount > 0 && (
+                    <div className="flex items-center gap-2 mt-2">
                       <div className="flex items-center bg-gray-800 px-3 py-1 rounded-full">
                         <Star className="h-4 w-4 text-yellow-400 fill-yellow-400 mr-1" />
-                        <span className="text-white text-sm font-medium">{reseña.rating}</span>
+                        <span className="text-white font-bold">{local.rating || '0.0'}</span>
                       </div>
+                      <span className="text-gray-400 text-sm">
+                        {local.reviewCount} {local.reviewCount === 1 ? 'reseña' : 'reseñas'}
+                      </span>
                     </div>
-                    <p className="text-gray-300">{reseña.comentario}</p>
-                  </div>
-                ))}
+                  )}
+                </div>
               </div>
+
+              {/* Formulario para dejar reseña */}
+              {currentUser ? (
+                <ReviewForm 
+                  localId={local.id} 
+                  onReviewSubmitted={() => loadReviews(local.id)} 
+                />
+              ) : (
+                <div className="bg-gray-800 p-6 rounded-lg mb-6 text-center">
+                  <p className="text-gray-400 mb-4">Inicia sesión para dejar una reseña</p>
+                  <Link 
+                    to="/login" 
+                    className="inline-block bg-orange-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-orange-600 transition"
+                  >
+                    Iniciar Sesión
+                  </Link>
+                </div>
+              )}
+
+              {/* Lista de reseñas */}
+              {reviewsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mx-auto"></div>
+                  <p className="text-gray-400 mt-4">Cargando reseñas...</p>
+                </div>
+              ) : reviews.length === 0 ? (
+                <div className="text-center py-8">
+                  <MessageCircle className="h-16 w-16 text-gray-700 mx-auto mb-4" />
+                  <p className="text-gray-400">Aún no hay reseñas. ¡Sé el primero en dejar una!</p>
+                </div>
+              ) : (
+                <ReviewsList 
+                  reviews={reviews}
+                  currentUserId={currentUser?.uid}
+                  localId={local.id} 
+                  onReviewDeleted={() => loadReviews(local.id)}
+                  onReviewUpdated={() => loadReviews(local.id)}
+                />
+              )}
             </div>
           </div>
 
