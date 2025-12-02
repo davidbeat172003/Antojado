@@ -291,13 +291,33 @@ useEffect(() => {
                   </a>
                 </div>
               </div>
-
               <div className="pt-4 flex gap-3">
-                <button className="flex-1 bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition flex items-center justify-center gap-2">
+                {/* Botón Cómo Llegar */}
+                <button
+                  onClick={() => {
+                    // Abrir Google Maps con la dirección
+                    const address = encodeURIComponent(local.address);
+                    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${address}`;
+                    window.open(mapsUrl, '_blank');
+                  }}
+                  className="flex-1 bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition flex items-center justify-center gap-2"
+                >
                   <Navigation className="h-5 w-5" />
                   Cómo llegar
                 </button>
-                <button className="flex-1 bg-gray-800 text-white py-3 rounded-lg font-medium hover:bg-gray-700 transition flex items-center justify-center gap-2">
+                
+                {/* Botón Llamar */}
+                <button
+                  onClick={() => {
+                    // Abrir marcador telefónico
+                    if (local.phone) {
+                      window.location.href = `tel:${local.phone}`;
+                    } else {
+                      alert('Teléfono no disponible');
+                    }
+                  }}
+                  className="flex-1 bg-gray-800 text-white py-3 rounded-lg font-medium hover:bg-gray-700 transition flex items-center justify-center gap-2"
+                >
                   <Phone className="h-5 w-5" />
                   Llamar
                 </button>
