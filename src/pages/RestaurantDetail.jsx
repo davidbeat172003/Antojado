@@ -452,16 +452,29 @@ useEffect(() => {
               <div className="bg-gray-900 rounded-xl p-6 mb-6">
                 <h3 className="text-xl font-bold text-white mb-4">Ubicación</h3>
                 <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden mb-4">
-                  {/* Aquí irá el mapa de Google Maps después */}
-                  <div className="w-full h-full flex items-center justify-center text-gray-500">
-                    <MapPin className="h-12 w-12" />
-                  </div>
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    style={{ border: 0 }}
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(local.address)}&output=embed`}
+                    allowFullScreen
+                    loading="lazy"
+                  />
                 </div>
-                <p className="text-gray-400 text-sm mb-4">{local.address}</p>
-                <button className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition">
-                  Ver en Google Maps
-                </button>
-              </div>
+
+                  <p className="text-gray-400 text-sm mb-4">{local.address}</p>
+                  
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(local.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition flex items-center justify-center gap-2"
+                  >
+                    <MapPin className="h-5 w-5" />
+                    Ver en Google Maps
+                  </a>
+                </div>
 
               {/* Lugares Similares */}
               <div className="bg-gray-900 rounded-xl p-6">

@@ -12,6 +12,7 @@ import AddTestData from './utils/AddTestData';
 import PricingPage from './pages/PricingPage';
 import CheckoutPage from './pages/CheckoutPage';
 import SuccessPage from './pages/SuccessPage';
+import ChatbotSimple from './components/ChatbotSimple';
 
 // Componente NavBar
 function NavBar() {
@@ -19,7 +20,7 @@ function NavBar() {
   const [userType, setUserType] = useState(null);
   const { currentUser, logout } = useAuth();
   const { favorites } = useFavorites();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
 
   useEffect(() => {
     const loadUserType = async () => {
@@ -127,20 +128,28 @@ function NavBar() {
               Favoritos {favorites.length > 0 && `(${favorites.length})`}
             </Link>
             
+            {/* AGREGAR ESTE ENLACE DE PLANES */}
+            <Link to="/planes" onClick={() => setMenuOpen(false)} className="block w-full text-left text-gray-300 hover:text-orange-500 font-medium">
+              Planes
+            </Link>
+            
+            {currentUser && userType === 'negocio' && (
+              <Link
+                to="/dashboard-negocio"
+                onClick={() => setMenuOpen(false)}
+                className="block w-full text-left text-gray-300 hover:text-orange-500 font-medium"
+              >
+                <Store className="h-5 w-5 inline mr-1" />
+                Mi Negocio
+              </Link>
+            )}
+            
             {currentUser ? (
               <>
                 <div className="text-gray-300 py-2">
                   <User className="h-5 w-5 inline mr-1" />
                   {currentUser.displayName || currentUser.email}
                 </div>
-                <Link
-                  to="/dashboard-negocio"
-                  onClick={() => setMenuOpen(false)}
-                  className="block w-full text-left text-gray-300 hover:text-orange-500 font-medium"
-                >
-                  <Store className="h-5 w-5 inline mr-1" />
-                  Mi Negocio
-                </Link>
                 <button
                   onClick={() => { handleLogout(); setMenuOpen(false); }}
                   className="block w-full text-left text-gray-300 hover:text-orange-500 font-medium"
@@ -177,6 +186,7 @@ function HomePage({ locales, loading }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [minRating, setMinRating] = useState(0);
+  const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
   
   const destacadosRef = useRef(null);
   const mejorCalificadosRef = useRef(null);
@@ -192,6 +202,25 @@ function HomePage({ locales, loading }) {
     }
   };
 
+  // Seleccionar locales para el Hero (destacados + mejor calificados)
+  const heroLocales = [
+    ...locales.filter(l => l.subscriptionPlan === 'destacado' || l.featured === true),
+    ...locales.filter(l => (l.rating || 0) >= 4.5)
+  ]
+    .filter((local, index, self) => 
+      index === self.findIndex((l) => l.id === local.id)
+    )
+    .slice(0, 5);
+
+  useEffect(() => {
+    if (heroLocales.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentHeroIndex((prev) => (prev + 1) % heroLocales.length);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [heroLocales.length]);
+
   // Filtrar locales según búsqueda
   const filteredLocales = locales.filter(local => {
     const matchesSearch = local.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -204,7 +233,7 @@ function HomePage({ locales, loading }) {
 
   const categories = ['Todos', ...new Set(locales.map(l => l.category))];
   // Filtrar locales destacados (plan destacado)
-const featuredLocales = filteredLocales.filter(l => l.subscriptionPlan === 'destacado' || l.featured === true);
+  const featuredLocales = filteredLocales.filter(l => l.subscriptionPlan === 'destacado' || l.featured === true);
 
   const HorizontalCarousel = ({ title, items, scrollRef }) => {
     if (items.length === 0) return null;
@@ -319,24 +348,39 @@ const featuredLocales = filteredLocales.filter(l => l.subscriptionPlan === 'dest
     );
   }
 
-  const mejorCalificados = [...filteredLocales].sort((a, b) => (b.rating || 0) - (a.rating || 0));
-  const featured = mejorCalificados[0];
+      const nextHero = () => {
+      setCurrentHeroIndex((prev) => (prev + 1) % heroLocales.length);
+    };
+
+    const prevHero = () => {
+      setCurrentHeroIndex((prev) => (prev - 1 + heroLocales.length) % heroLocales.length);
+    };
 
   return (
     <div className="pt-16 bg-black min-h-screen">
       <style>{`.scrollbar-hide::-webkit-scrollbar { display: none; }`}</style>
 
       {/* Sección Hero con Featured */}
-      {featured && (
-        <div className="relative h-[80vh] mb-8">
+      {heroLocales.length > 0 && (
+        <div className="relative h-[80vh] mb-8 overflow-hidden">
+          {/* Carrusel de imágenes */}
           <div className="absolute inset-0">
-            <img
-              src={featured.images && featured.images[0] ? featured.images[0] : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920'}
-              alt={featured.name}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-transparent" />
+            {heroLocales.map((local, index) => (
+              <div
+                key={local.id}
+                className={`absolute inset-0 transition-opacity duration-1000 ${
+                  index === currentHeroIndex ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                <img
+                  src={local.images && local.images[0] ? local.images[0] : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920'}
+                  alt={local.name}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-transparent" />
+              </div>
+            ))}
           </div>
 
           <div className="relative h-full flex items-center">
@@ -346,39 +390,74 @@ const featuredLocales = filteredLocales.filter(l => l.subscriptionPlan === 'dest
                   Destacado
                 </span>
                 <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
-                  {featured.name}
+                  {heroLocales[currentHeroIndex].name}
                 </h1>
                 <p className="text-xl text-gray-200 mb-6">
-                  {featured.description}
+                  {heroLocales[currentHeroIndex].description}
                 </p>
                 
                 <div className="flex items-center gap-4 mb-8">
                   <div className="flex items-center">
                     <Star className="h-6 w-6 text-yellow-400 fill-yellow-400 mr-2" />
-                    <span className="text-white font-bold text-xl">{featured.rating || '0.0'}</span>
+                    <span className="text-white font-bold text-xl">{heroLocales[currentHeroIndex].rating || '0.0'}</span>
                   </div>
                   <span className="text-gray-400">•</span>
-                  <span className="text-gray-300">{featured.category}</span>
+                  <span className="text-gray-300">{heroLocales[currentHeroIndex].category}</span>
                 </div>
 
                 <div className="flex items-center gap-4">
                   <Link
-                    to={`/local/${featured.id}`}
+                    to={`/local/${heroLocales[currentHeroIndex].id}`}
                     className="bg-white text-black px-8 py-3 rounded-lg font-bold text-lg hover:bg-gray-200 transition"
                   >
                     Ver Detalles
                   </Link>
                   
                   <button
-                    onClick={() => toggleFavorite(featured.id)}
+                    onClick={() => toggleFavorite(heroLocales[currentHeroIndex].id)}
                     className="bg-gray-800/80 hover:bg-gray-700 text-white p-3 rounded-lg transition"
                   >
-                    <Heart className={`h-6 w-6 ${favorites.includes(featured.id) ? 'fill-orange-500 text-orange-500' : ''}`} />
+                    <Heart className={`h-6 w-6 ${favorites.includes(heroLocales[currentHeroIndex].id) ? 'fill-orange-500 text-orange-500' : ''}`} />
                   </button>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Controles */}
+          {heroLocales.length > 1 && (
+            <>
+              <button
+                onClick={prevHero}
+                className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition z-10"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              <button
+                onClick={nextHero}
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition z-10"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                {heroLocales.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentHeroIndex(index)}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      index === currentHeroIndex ? 'bg-orange-500 w-8' : 'bg-white/50 hover:bg-white/70'
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -586,6 +665,8 @@ const featuredLocales = filteredLocales.filter(l => l.subscriptionPlan === 'dest
       </div>
 
       <div className="h-20"></div>
+      {!loading && <ChatbotSimple locales={locales} />}
+
     </div>
   );
 }
